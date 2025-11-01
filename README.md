@@ -113,3 +113,4 @@ Endpoints added:
 - `POST /api/wishlist/remove` – remove `{ productId, store? }`
 
 Consider adding integration tests around the recommendation endpoint once real affiliate APIs are wired up.
+"# Trendella_v2" 
