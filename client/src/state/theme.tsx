@@ -20,29 +20,53 @@ const STORAGE_KEY = "trendella-theme";
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
-const getInitialTheme = (): Theme => {
-  if (typeof window === "undefined") return "light";
-  const stored = window.localStorage.getItem(STORAGE_KEY) as Theme | null;
-  if (stored === "light" || stored === "dark") {
-    return stored;
-  }
-  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  return prefersDark ? "dark" : "light";
-};
-
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
-  const [theme, setThemeState] = useState<Theme>(getInitialTheme);
+  const [theme, setThemeState] = useState<Theme>(() => {
+    // Apply theme immediately before React renders to prevent flash
+    if (typeof window !== "undefined") {
+      const stored = window.localStorage.getItem(STORAGE_KEY) as Theme | null;
+      let initialTheme: Theme;
+      if (stored === "light" || stored === "dark") {
+        initialTheme = stored;
+      } else {
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        initialTheme = prefersDark ? "dark" : "light";
+      }
+      
+      const root = document.documentElement;
+      if (initialTheme === "dark") {
+        root.classList.add("dark");
+      } else {
+        root.classList.remove("dark");
+      }
+      root.setAttribute("data-theme", initialTheme);
+      
+      return initialTheme;
+    }
+    return "light";
+  });
 
   useEffect(() => {
-    const root = document.documentElement;
+    const html = document.documentElement;
+    const body = document.body;
+    
+    // Apply or remove dark class on html element
     if (theme === "dark") {
-      root.classList.add("dark");
-      root.dataset.theme = "dark";
+      html.classList.add("dark");
+      html.setAttribute("data-theme", "dark");
+      body.setAttribute("data-theme", "dark");
     } else {
-      root.classList.remove("dark");
-      root.dataset.theme = "light";
+      html.classList.remove("dark");
+      html.setAttribute("data-theme", "light");
+      body.setAttribute("data-theme", "light");
     }
-    window.localStorage.setItem(STORAGE_KEY, theme);
+    
+    // Save to localStorage
+    try {
+      window.localStorage.setItem(STORAGE_KEY, theme);
+    } catch (e) {
+      console.warn("Failed to save theme to localStorage:", e);
+    }
   }, [theme]);
 
   const toggleTheme = useCallback(() => {

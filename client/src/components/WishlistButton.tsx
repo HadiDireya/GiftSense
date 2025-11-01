@@ -46,14 +46,22 @@ export const WishlistButton = ({ product }: WishlistButtonProps) => {
       type="button"
       onClick={handleToggle}
       disabled={isLoading}
-      className={`flex-1 rounded-full border px-4 py-2 text-sm font-medium transition ${
+      className={`flex h-12 w-12 items-center justify-center rounded-xl border-2 px-3 py-2.5 text-sm font-bold transition-all duration-200 shadow-soft ${
         isSaved
-          ? "border-rose-500 text-rose-500 hover:bg-rose-50 hover:text-rose-600 dark:border-rose-400 dark:text-rose-300 dark:hover:bg-rose-500/10"
-          : "border-slate-300 text-slate-700 hover:border-brand hover:text-brand dark:border-slate-700 dark:text-slate-200"
-      } disabled:cursor-not-allowed disabled:opacity-60`}
+          ? "border-rose-500/60 bg-gradient-to-br from-rose-50 to-rose-100 text-rose-600 hover:scale-105 hover:border-rose-500 hover:shadow-glow dark:border-rose-400/60 dark:from-rose-500/20 dark:to-rose-500/10 dark:text-rose-300"
+          : "border-slate-200/60 bg-white/80 backdrop-blur-sm text-slate-700 hover:border-brand hover:bg-gradient-to-br hover:from-brand/10 hover:to-brand/5 hover:text-brand hover:scale-105 hover:shadow-glow dark:border-slate-700/60 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:from-brand/20 dark:hover:to-brand/10"
+      } disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100`}
       aria-pressed={isSaved}
     >
-      {isSaved ? "Remove" : "Save to Wish List"}
+      {isSaved ? (
+        <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+        </svg>
+      ) : (
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+        </svg>
+      )}
     </button>
   );
 };
