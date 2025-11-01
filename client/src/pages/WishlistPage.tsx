@@ -2,17 +2,38 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { EmptyState } from "../components/EmptyState";
 import { ProductCard } from "../components/ProductCard";
-import { fetchWishlist, type NormalizedProduct } from "../lib/api";
+import { fetchMe, fetchWishlist, type NormalizedProduct } from "../lib/api";
 
 export const WishlistPage = () => {
   const navigate = useNavigate();
-  const { data, isLoading, isError } = useQuery<NormalizedProduct[]>({
-    queryKey: ["wishlist"],
-    queryFn: fetchWishlist,
-    initialData: [] as NormalizedProduct[]
+
+  // Wait for the auth session to hydrate before hitting the wishlist endpoint;
+  // otherwise we might race the backend and get the guest list (empty) back.
+  const { data: user, isPending: isUserPending } = useQuery({
+    queryKey: ["me"],
+    queryFn: fetchMe
   });
 
-  if (isLoading) {
+  const {
+    data = [],
+    isLoading,
+    isError
+  } = useQuery<NormalizedProduct[]>({
+    queryKey: ["wishlist", user?.id ?? "guest"],
+    queryFn: fetchWishlist,
+    placeholderData: [],
+    enabled: Boolean(user)
+  });
+
+  console.log("wishlist query state", {
+    user,
+    isUserPending,
+    isLoading,
+    isError,
+    dataLength: data?.length
+  });
+
+  if (isLoading || isUserPending) {
     return (
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {[...Array(3)].map((_, index) => (
@@ -47,7 +68,7 @@ export const WishlistPage = () => {
     return (
       <EmptyState
         title="No saved gifts yet"
-        description="Tap “Save to Wish List” on any gift card in the chat to keep it here."
+        description='Tap "Save to Wish List" on any gift card in the chat to keep it here.'
         action={
           <button
             type="button"

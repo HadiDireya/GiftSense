@@ -76,7 +76,7 @@ export const ProductCard = ({ product, explanation }: ProductCardProps) => {
         >
           Buy
         </a>
-        <WishlistButton productId={product.id} />
+        <WishlistButton product={product} />
       </footer>
     </article>
   );

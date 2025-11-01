@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getFirebaseAuth, waitForAuthReady } from "./firebase";
 import type { RecipientProfile } from "../state/profile";
 
 const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:5000";
@@ -37,12 +38,28 @@ export interface RecommendResponse extends RenderingContract {
   products: NormalizedProduct[];
 }
 
+console.log("apiClient configured", API_BASE);
+
 export const apiClient = axios.create({
   baseURL: API_BASE,
   headers: {
     "Content-Type": "application/json"
   },
   withCredentials: true
+});
+
+apiClient.interceptors.request.use(async (config) => {
+  // Ensure Firebase has restored the current user before attaching tokens.
+  console.log("sending request", config.url, config.method);
+  await waitForAuthReady();
+  const auth = getFirebaseAuth();
+  const currentUser = auth.currentUser;
+  if (currentUser) {
+    const token = await currentUser.getIdToken();
+    config.headers = config.headers ?? {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 export const requestRecommendations = async (profile: RecipientProfile) => {
@@ -55,12 +72,16 @@ export const fetchWishlist = async () => {
   return data.products;
 };
 
-export const addWishlistItem = async (productId: string) => {
-  await apiClient.post("/api/wishlist/add", { productId });
+export const addWishlistItem = async (product: NormalizedProduct) => {
+  await apiClient.post("/api/wishlist/add", {
+    productId: product.id,
+    store: product.store,
+    product
+  });
 };
 
-export const removeWishlistItem = async (productId: string) => {
-  await apiClient.post("/api/wishlist/remove", { productId });
+export const removeWishlistItem = async (productId: string, store?: string) => {
+  await apiClient.post("/api/wishlist/remove", { productId, store });
 };
 
 export interface MeResponse {
@@ -70,4 +91,12 @@ export interface MeResponse {
 export const fetchMe = async () => {
   const { data } = await apiClient.get<MeResponse>("/api/me");
   return data.user;
+};
+
+export const postFirebaseSession = async (idToken: string) => {
+  await apiClient.post("/api/auth/session", { idToken });
+};
+
+export const revokeSession = async () => {
+  await apiClient.post("/api/auth/logout");
 };

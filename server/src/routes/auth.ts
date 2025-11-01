@@ -1,57 +1,67 @@
 import { Router } from "express";
 import { z } from "zod";
-import { buildGoogleAuthUrl, clearStateCookie, ensureGuestCookie, exchangeCodeForTokens, getUserFromRequest, issueStateCookie, setAuthCookies, verifyGoogleIdToken } from "../utils/auth";
-import { upsertUserByGoogle } from "../services/user";
-import { mergeGuestWishlistIntoUser } from "../services/session";
-import { env } from "../utils/env";
+import {
+  GUEST_COOKIE,
+  clearGuestCookie,
+  clearSessionCookie,
+  createSessionCookie,
+  ensureGuestCookie,
+  SESSION_COOKIE_NAME,
+  setSessionCookie
+} from "../utils/auth";
+import { getFirebaseAuth } from "../utils/firebase";
+import { drainGuestWishlist } from "../services/session";
+import { mergeWishlistProducts } from "../services/user-wishlist";
+import { sanitizeAffiliateUrl } from "../utils/url";
 
 const router = Router();
 
-router.get("/google", (req, res) => {
-  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET || !env.SERVER_BASE_URL) {
-    return res.status(500).send("Google OAuth is not configured on the server.");
-  }
-  const state = issueStateCookie(res);
-  // ensure guest cookie exists for potential merge later
-  ensureGuestCookie(req, res);
-  const url = buildGoogleAuthUrl(state);
-  res.redirect(url);
-});
-
-router.get("/google/callback", async (req, res, next) => {
+router.post("/session", async (req, res, next) => {
   try {
-    const schema = z.object({ code: z.string().min(1), state: z.string().min(1) });
-    const { code, state } = schema.parse(req.query);
-    const expectedState = req.cookies?.["oauth_state"];
-    if (!expectedState || expectedState !== state) {
-      return res.status(400).send("Invalid OAuth state");
-    }
+    const schema = z.object({ idToken: z.string().min(1) });
+    const { idToken } = schema.parse(req.body);
 
-    const { id_token } = await exchangeCodeForTokens(code);
-    const googleProfile = await verifyGoogleIdToken(id_token);
-    const user = upsertUserByGoogle(googleProfile);
+    const auth = getFirebaseAuth();
+    const decoded = await auth.verifyIdToken(idToken);
+    const sessionCookie = await createSessionCookie(idToken);
+    setSessionCookie(res, sessionCookie);
 
-    // Merge guest wishlist if present
-    const guestId = req.cookies?.["guest_session_id"] as string | undefined;
+    const guestId = req.cookies?.[GUEST_COOKIE] as string | undefined;
     if (guestId) {
-      mergeGuestWishlistIntoUser(guestId, user.id);
+      const guestWishlist = drainGuestWishlist(guestId).map((product) => ({
+        ...product,
+        affiliate_url: sanitizeAffiliateUrl(product.affiliate_url)
+      }));
+      if (guestWishlist.length > 0) {
+        await mergeWishlistProducts(decoded.uid, guestWishlist);
+      }
+      clearGuestCookie(res);
     }
 
-    // Issue our own cookies
-    const [access, refresh] = await Promise.all([
-      (await import("../utils/auth")).signAccessToken(user),
-      (await import("../utils/auth")).signRefreshToken(user)
-    ]);
-    setAuthCookies(res, access, refresh);
-    clearStateCookie(res);
-
-    const redirectTo = env.CLIENT_BASE_URL ?? (env.ORIGIN_ALLOWLIST[0] ?? "/");
-    res.redirect(redirectTo);
-  } catch (err) {
-    next(err);
+    res.json({ ok: true });
+  } catch (error) {
+    next(error);
   }
 });
 
-// /api/me is handled in index.ts for clarity
+router.post("/logout", async (req, res, next) => {
+  try {
+    const sessionCookie = req.cookies?.[SESSION_COOKIE_NAME] as string | undefined;
+    if (sessionCookie) {
+      try {
+        const auth = getFirebaseAuth();
+        const decoded = await auth.verifySessionCookie(sessionCookie, true);
+        await auth.revokeRefreshTokens(decoded.sub);
+      } catch {
+        // ignore verification errors during logout
+      }
+    }
+    clearSessionCookie(res);
+    ensureGuestCookie(req, res);
+    res.json({ ok: true });
+  } catch (error) {
+    next(error);
+  }
+});
 
 export default router;

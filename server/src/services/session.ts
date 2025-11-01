@@ -7,7 +7,6 @@ const recommendationMemory = new Map<string, ProductMap>();
 
 // Wishlists
 const guestWishlistMemory = new Map<string, ProductMap>(); // key: guest_session_id
-const userWishlistMemory = new Map<string, ProductMap>(); // key: user_id
 
 const getOrCreate = (store: Map<string, ProductMap>, key: string): ProductMap => {
   if (!store.has(key)) {
@@ -62,33 +61,10 @@ export const removeFromGuestWishlist = (guestId: string, productId: string, stor
   }
 };
 
-// User wishlist
-export const getUserWishlist = (userId: string): NormalizedProduct[] => {
-  return Array.from(getOrCreate(userWishlistMemory, userId).values());
-};
-
-export const addToUserWishlist = (userId: string, product: NormalizedProduct) => {
-  const wishlist = getOrCreate(userWishlistMemory, userId);
-  wishlist.set(wishlistKey(product), product);
-};
-
-export const removeFromUserWishlist = (userId: string, productId: string, store?: string) => {
-  const wishlist = getOrCreate(userWishlistMemory, userId);
-  if (store) {
-    wishlist.delete(`${store}|${productId}`);
-    return;
-  }
-  for (const key of Array.from(wishlist.keys())) {
-    if (key.endsWith(`|${productId}`)) wishlist.delete(key);
-  }
-};
-
-export const mergeGuestWishlistIntoUser = (guestId: string, userId: string) => {
+export const drainGuestWishlist = (guestId: string): NormalizedProduct[] => {
   const guest = guestWishlistMemory.get(guestId);
-  if (!guest) return;
-  const user = getOrCreate(userWishlistMemory, userId);
-  for (const [key, product] of guest.entries()) {
-    user.set(key, product);
-  }
+  if (!guest) return [];
+  const items = Array.from(guest.values());
   guestWishlistMemory.delete(guestId);
+  return items;
 };

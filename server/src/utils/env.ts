@@ -21,14 +21,12 @@ const envSchema = z
     EBAY_APP_ID: z.string().optional(),
     BESTBUY_API_KEY: z.string().optional(),
     ETSY_API_KEY: z.string().optional(),
-    GOOGLE_CLIENT_ID: z.string().optional(),
-    GOOGLE_CLIENT_SECRET: z.string().optional(),
+    FIREBASE_PROJECT_ID: z.string().optional(),
+    FIREBASE_CLIENT_EMAIL: z.string().optional(),
+    FIREBASE_PRIVATE_KEY: z.string().optional(),
+    FIREBASE_SESSION_COOKIE_TTL_DAYS: z.coerce.number().default(5),
     SERVER_BASE_URL: z.string().url().optional(),
-    CLIENT_BASE_URL: z.string().url().optional(),
-    JWT_SECRET: z.string().optional(),
-    REFRESH_SECRET: z.string().optional(),
-    ACCESS_TOKEN_TTL_MIN: z.coerce.number().default(15),
-    REFRESH_TOKEN_TTL_DAYS: z.coerce.number().default(7)
+    CLIENT_BASE_URL: z.string().url().optional()
   })
   .transform((values) => ({
     ...values,

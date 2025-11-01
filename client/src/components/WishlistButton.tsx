@@ -1,24 +1,31 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { addWishlistItem, removeWishlistItem, type NormalizedProduct } from "../lib/api";
 
 interface WishlistButtonProps {
-  productId: string;
+  product: NormalizedProduct;
 }
 
-export const WishlistButton = ({ productId }: WishlistButtonProps) => {
+export const WishlistButton = ({ product }: WishlistButtonProps) => {
   const queryClient = useQueryClient();
-  const wishlist = queryClient.getQueryData<NormalizedProduct[]>(["wishlist"]) ?? [];
-  const isSaved = wishlist.some((item) => item.id === productId);
+  const cachedWishlistEntries =
+    queryClient.getQueriesData<NormalizedProduct[]>({ queryKey: ["wishlist"] }) ?? [];
+  const wishlist = cachedWishlistEntries.find(([, value]) => Array.isArray(value))?.[1] ?? [];
+  const productKey = useMemo(
+    () => `${product.store}|${product.id}`,
+    [product.id, product.store]
+  );
+  const isSaved = wishlist.some((item) => `${item.store}|${item.id}` === productKey);
 
   const addMutation = useMutation({
-    mutationFn: () => addWishlistItem(productId),
+    mutationFn: () => addWishlistItem(product),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["wishlist"] });
     }
   });
 
   const removeMutation = useMutation({
-    mutationFn: () => removeWishlistItem(productId),
+    mutationFn: () => removeWishlistItem(product.id, product.store),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["wishlist"] });
     }
@@ -41,12 +48,12 @@ export const WishlistButton = ({ productId }: WishlistButtonProps) => {
       disabled={isLoading}
       className={`flex-1 rounded-full border px-4 py-2 text-sm font-medium transition ${
         isSaved
-          ? "border-rose-500 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10"
+          ? "border-rose-500 text-rose-500 hover:bg-rose-50 hover:text-rose-600 dark:border-rose-400 dark:text-rose-300 dark:hover:bg-rose-500/10"
           : "border-slate-300 text-slate-700 hover:border-brand hover:text-brand dark:border-slate-700 dark:text-slate-200"
       } disabled:cursor-not-allowed disabled:opacity-60`}
       aria-pressed={isSaved}
     >
-      {isSaved ? "Saved" : "Save to Wish List"}
+      {isSaved ? "Remove" : "Save to Wish List"}
     </button>
   );
 };
