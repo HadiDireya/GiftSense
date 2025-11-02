@@ -31,23 +31,21 @@ export const ConfirmDialog = ({
       {/* Dialog */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
-          className="bg-white/95 backdrop-blur-xl dark:bg-slate-900/95 rounded-2xl shadow-soft-lg max-w-md w-full p-6 border-2 border-slate-200/60 dark:border-slate-700/60 animate-fade-in"
-          onClick={(e) => e.stopPropagation()}
+          className="w-full max-w-md rounded-[28px] border border-white/40 bg-white/85 p-6 shadow-soft backdrop-blur-glass dark:border-white/10 dark:bg-charcoal/90 animate-fade-in"
+          onClick={(event) => event.stopPropagation()}
         >
-          <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-3">
-            {title}
-          </h3>
-          <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">{message}</p>
-          <div className="flex gap-3 justify-end">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{title}</h3>
+          <p className="mt-3 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{message}</p>
+          <div className="mt-6 flex justify-end gap-3">
             <button
               onClick={onCancel}
-              className="px-5 py-2.5 text-sm font-bold rounded-xl border-2 border-slate-200/60 bg-white/80 backdrop-blur-sm dark:border-slate-700/60 dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200 hover:scale-105 hover:shadow-soft text-slate-700 dark:text-slate-300"
+              className="rounded-full border border-white/40 bg-white/70 px-4 py-2 text-xs font-semibold text-slate-600 shadow-soft transition-transform duration-200 hover:-translate-y-0.5 dark:border-white/10 dark:bg-white/10 dark:text-slate-300"
             >
               {cancelText}
             </button>
             <button
               onClick={onConfirm}
-              className="px-5 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-br from-red-600 to-red-700 text-white shadow-soft transition-all duration-200 hover:scale-105 hover:shadow-glow"
+              className="rounded-full bg-gradient-to-r from-rose-500 to-rose-600 px-5 py-2 text-xs font-semibold text-white shadow-soft transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-glow"
             >
               {confirmText}
             </button>

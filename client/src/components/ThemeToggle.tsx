@@ -7,7 +7,7 @@ export const ThemeToggle = () => {
     <button
       type="button"
       onClick={toggleTheme}
-      className="inline-flex h-10 w-10 items-center justify-center rounded-xl border-2 border-slate-200/60 bg-white/80 backdrop-blur-sm text-slate-700 shadow-soft transition-all duration-200 hover:scale-110 hover:border-brand hover:bg-gradient-to-br hover:from-brand/10 hover:to-brand/5 hover:text-brand hover:shadow-glow dark:border-slate-700/60 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:from-brand/20 dark:hover:to-brand/10"
+      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/40 bg-white/70 text-slate-600 shadow-soft transition-transform duration-200 hover:-translate-y-0.5 hover:text-brand dark:border-white/10 dark:bg-white/10 dark:text-slate-200"
       aria-label="Toggle color theme"
     >
       {theme === "dark" ? (

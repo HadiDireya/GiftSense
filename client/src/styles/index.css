@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -12,11 +14,20 @@
   }
 
   body {
-    @apply bg-gradient-to-br from-slate-50 via-white to-slate-50 text-slate-900 antialiased;
+    @apply font-sans text-slate-900 antialiased;
+    background: linear-gradient(120deg, rgba(228, 233, 255, 0.75), rgba(237, 252, 248, 0.9)),
+      radial-gradient(circle at top left, rgba(167, 139, 250, 0.28), transparent 55%),
+      radial-gradient(circle at 85% 15%, rgba(110, 231, 183, 0.25), transparent 50%),
+      #f8fafc;
+    min-height: 100vh;
   }
 
   :root.dark body {
-    @apply bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100 antialiased;
+    @apply bg-charcoal text-slate-100;
+    background: linear-gradient(135deg, rgba(17, 24, 39, 0.95), rgba(17, 24, 39, 0.85)),
+      radial-gradient(circle at 15% 15%, rgba(167, 139, 250, 0.2), transparent 55%),
+      radial-gradient(circle at 80% 10%, rgba(110, 231, 183, 0.18), transparent 45%),
+      #0f172a;
   }
 
   /* Custom Scrollbar Styles */
@@ -60,15 +71,15 @@
 
 @layer components {
   .chat-bubble {
-    @apply rounded-2xl px-5 py-3.5 transition-all duration-200;
-    box-shadow: 0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04);
+    @apply rounded-3xl px-5 py-4 transition-all duration-200 shadow-soft;
+    backdrop-filter: blur(18px);
   }
 
   .glass-effect {
-    @apply bg-white/80 backdrop-blur-xl border border-white/20;
+    @apply bg-white/70 border border-white/40 backdrop-blur-glass shadow-soft;
   }
 
   .glass-effect-dark {
-    @apply bg-slate-900/80 backdrop-blur-xl border border-slate-800/50;
+    @apply bg-charcoal/80 border border-white/10 backdrop-blur-glass shadow-soft;
   }
 }

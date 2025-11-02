@@ -42,39 +42,57 @@ export const ChatThread = ({
     () =>
       messages.map((message) => {
         const isUser = message.sender === "user";
-        const alignment = isUser ? "items-end" : "items-start";
+        const alignment = isUser ? "flex-row-reverse" : "flex-row";
         const bubbleStyle = isUser
-          ? "bg-gradient-to-br from-brand to-brand-dark text-white shadow-glow"
-          : "bg-white/90 backdrop-blur-sm text-slate-900 border border-slate-200/50 dark:bg-slate-800/90 dark:text-slate-100 dark:border-slate-700/50";
+          ? "bg-gradient-to-r from-brand via-mint/80 to-brand-dark text-white shadow-glow"
+          : "bg-white/75 backdrop-blur-glass text-slate-900 border border-white/40 dark:bg-white/10 dark:text-slate-100 dark:border-white/10";
         const infoStyle =
           message.variant === "info"
-            ? "border-2 border-brand/40 bg-gradient-to-br from-brand/10 to-brand/5 text-brand shadow-soft dark:border-brand/50 dark:from-brand/20 dark:to-brand/10"
+            ? "border border-brand/40 bg-brand/10 text-brand dark:bg-brand/20 dark:text-brand-light"
             : "";
         const errorStyle =
           message.variant === "error"
-            ? "border-2 border-rose-400/60 bg-gradient-to-br from-rose-50 to-rose-100 text-rose-700 shadow-soft dark:border-rose-600/60 dark:from-rose-500/20 dark:to-rose-500/10 dark:text-rose-200"
+            ? "border border-rose-400/60 bg-rose-50 text-rose-700 dark:border-rose-500/60 dark:bg-rose-500/20 dark:text-rose-200"
             : "";
 
         return (
-          <li key={message.id} className={`flex flex-col ${alignment} animate-fade-in`}>
-            <div className={`chat-bubble max-w-[85%] sm:max-w-[65%] ${bubbleStyle} ${infoStyle} ${errorStyle} leading-relaxed`}>
-              {message.content}
+          <li key={message.id} className={`flex ${alignment} items-start gap-3 animate-fade-in`}>
+            <span
+              className={`mt-1 inline-flex h-9 w-9 items-center justify-center rounded-full shadow-soft ${
+                isUser
+                  ? "bg-gradient-to-br from-brand to-mint text-white"
+                  : "bg-white/80 text-brand dark:bg-white/10 dark:text-brand-light"
+              }`}
+            >
+              {isUser ? (
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 12a5 5 0 100-10 5 5 0 000 10z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 21a7 7 0 0114 0" />
+                </svg>
+              ) : (
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l3 3" />
+                  <circle cx="12" cy="12" r="9" />
+                </svg>
+              )}
+            </span>
+            <div className={`flex max-w-[82%] flex-col gap-2 sm:max-w-[65%] ${isUser ? "items-end" : "items-start"}`}>
+              <div className={`chat-bubble ${bubbleStyle} ${infoStyle} ${errorStyle} leading-relaxed`}>{message.content}</div>
+              {message.options && message.options.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {message.options.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => onQuickReply(option)}
+                      className="rounded-full border border-white/40 bg-white/70 px-4 py-2 text-xs font-semibold text-brand shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:bg-white dark:border-white/10 dark:bg-white/10 dark:text-brand-light"
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-            {/* Show options as buttons if available */}
-            {message.options && message.options.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2 max-w-[85%] sm:max-w-[65%]">
-                {message.options.map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => onQuickReply(option)}
-                    className="rounded-xl border-2 border-brand/50 bg-gradient-to-br from-brand/10 to-brand/5 px-5 py-2.5 text-sm font-semibold text-brand shadow-soft transition-all duration-200 hover:scale-105 hover:border-brand hover:bg-gradient-to-br hover:from-brand/20 hover:to-brand/10 hover:shadow-glow dark:border-brand/60 dark:from-brand/20 dark:to-brand/10 dark:text-brand-light"
-                  >
-                    {option}
-                  </button>
-                ))}
-              </div>
-            )}
           </li>
         );
       }),
@@ -82,13 +100,13 @@ export const ChatThread = ({
   );
 
   return (
-    <section className="flex h-full flex-col gap-6 overflow-y-auto rounded-3xl border-2 border-slate-200/60 bg-gradient-to-br from-white/95 via-white to-white/95 p-6 shadow-soft-lg dark:border-slate-700/60 dark:from-slate-900/95 dark:via-slate-900 dark:to-slate-900/95">
+    <section className="flex h-full flex-col gap-6 overflow-y-auto pr-1">
       <ul className="flex flex-1 flex-col gap-4">{messageItems}</ul>
 
       {isLoading ? (
         <div className="flex flex-col gap-4 animate-fade-in">
-          <div className="chat-bubble max-w-sm bg-white/90 backdrop-blur-sm border border-slate-200/50 text-slate-600 dark:bg-slate-800/90 dark:border-slate-700/50 dark:text-slate-300">
-            Trendella is pulling in fresh products...
+          <div className="chat-bubble max-w-sm border border-white/40 bg-white/70 text-slate-600 dark:border-white/10 dark:bg-white/10 dark:text-slate-300">
+            Trendella is curating fresh gifts for you…
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <SkeletonCard />
@@ -100,8 +118,8 @@ export const ChatThread = ({
 
       {products.length > 0 && !isLoading ? (
         <div className="space-y-5 animate-slide-up">
-          <div className="chat-bubble bg-gradient-to-br from-brand/10 to-brand/5 border-2 border-brand/30 text-slate-800 dark:from-brand/20 dark:to-brand/10 dark:border-brand/40 dark:text-slate-200 shadow-soft">
-            Here are the top matches based on what you shared.
+          <div className="chat-bubble border border-brand/40 bg-brand/10 text-slate-800 shadow-soft dark:border-brand/50 dark:bg-brand/20 dark:text-slate-200">
+            Here are the top matches tuned to their personality.
           </div>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {products.map((product) => (
@@ -117,7 +135,7 @@ export const ChatThread = ({
 
       {geminiLinks.length > 0 && !isLoading ? (
         <div className="space-y-3 animate-fade-in">
-          <div className="chat-bubble bg-white/90 backdrop-blur-sm border border-slate-200/50 text-slate-700 dark:bg-slate-800/90 dark:border-slate-700/50 dark:text-slate-200">
+          <div className="chat-bubble border border-white/40 bg-white/70 text-slate-700 shadow-soft dark:border-white/10 dark:bg-white/10 dark:text-slate-200">
             Gemini also pulled search links you can explore directly:
           </div>
           <div className="flex flex-wrap gap-2">
@@ -127,7 +145,7 @@ export const ChatThread = ({
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-xl border-2 border-brand/50 bg-gradient-to-br from-brand/10 to-brand/5 px-4 py-2.5 text-sm font-semibold text-brand shadow-soft transition-all duration-200 hover:scale-105 hover:border-brand hover:from-brand/20 hover:to-brand/10 hover:shadow-glow dark:border-brand/60 dark:from-brand/20 dark:to-brand/10 dark:text-brand-light"
+                className="rounded-full border border-brand/40 bg-brand/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-brand shadow-soft transition-transform duration-200 hover:-translate-y-0.5 hover:bg-brand/20 dark:border-brand/50 dark:bg-brand/15 dark:text-brand-light"
               >
                 {link.store.toUpperCase()}: {link.query}
               </a>
@@ -142,7 +160,7 @@ export const ChatThread = ({
             <button
               key={suggestion}
               type="button"
-              className="rounded-xl border-2 border-slate-200 bg-white/80 backdrop-blur-sm px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-soft transition-all duration-200 hover:scale-105 hover:border-brand hover:bg-gradient-to-br hover:from-brand/10 hover:to-brand/5 hover:text-brand hover:shadow-glow dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:from-brand/20 dark:hover:to-brand/10"
+              className="rounded-full border border-white/40 bg-white/70 px-4 py-2 text-xs font-semibold text-slate-700 shadow-soft transition-all duration-200 hover:-translate-y-0.5 hover:bg-white dark:border-white/10 dark:bg-white/10 dark:text-slate-200"
               onClick={() => onQuickReply(suggestion)}
             >
               {suggestion}

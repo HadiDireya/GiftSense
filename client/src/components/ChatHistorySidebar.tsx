@@ -1,9 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState, type MouseEvent } from "react";
 import { listChatSessions, deleteChatSession, renameChatSession } from "../lib/chatHistory";
 import { getFirebaseAuth } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { useEffect } from "react";
 import { ConfirmDialog } from "./ConfirmDialog";
 
 interface ChatHistorySidebarProps {
@@ -11,6 +10,7 @@ interface ChatHistorySidebarProps {
   onClose: () => void;
   onSelectSession: (sessionId: string | null) => void;
   currentSessionId: string | null;
+  variant?: "overlay" | "inline";
 }
 
 const formatSessionDate = (date: Date): string => {
@@ -27,21 +27,23 @@ const formatSessionDate = (date: Date): string => {
     return "Today";
   } else if (sessionDate.getTime() === yesterday.getTime()) {
     return "Yesterday";
-  } else {
-    return sessionDate.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: sessionDate.getFullYear() !== today.getFullYear() ? "numeric" : undefined
-    });
   }
+
+  return sessionDate.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: sessionDate.getFullYear() !== today.getFullYear() ? "numeric" : undefined
+  });
 };
 
 export const ChatHistorySidebar = ({
   isOpen,
   onClose,
   onSelectSession,
-  currentSessionId
+  currentSessionId,
+  variant = "overlay"
 }: ChatHistorySidebarProps) => {
+  const isInline = variant === "inline";
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const queryClient = useQueryClient();
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
@@ -49,7 +51,6 @@ export const ChatHistorySidebar = ({
   const [renamingSessionId, setRenamingSessionId] = useState<string | null>(null);
   const [renameInput, setRenameInput] = useState("");
 
-  // Check authentication state
   useEffect(() => {
     const auth = getFirebaseAuth();
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -58,42 +59,48 @@ export const ChatHistorySidebar = ({
     return () => unsubscribe();
   }, []);
 
-  const { data: sessions = [], isLoading, refetch } = useQuery({
+  const isVisible = isInline || isOpen;
+
+  const {
+    data: sessions = [],
+    isLoading,
+    refetch
+  } = useQuery({
     queryKey: ["chatSessions"],
     queryFn: listChatSessions,
-    enabled: isAuthenticated && isOpen,
+    enabled: isAuthenticated && isVisible,
     refetchOnMount: true,
-    staleTime: 0 // Always refetch when invalidated
+    staleTime: 0
   });
-  
-  // Refetch when sidebar opens to ensure we have the latest sessions
+
   useEffect(() => {
-    if (isOpen && isAuthenticated) {
-      // Small delay to ensure any pending saves have completed
+    if (!isInline && isOpen && isAuthenticated) {
       const timer = setTimeout(() => {
         refetch();
-      }, 300);
+      }, 250);
       return () => clearTimeout(timer);
     }
-  }, [isOpen, isAuthenticated, refetch]);
+  }, [isOpen, isAuthenticated, isInline, refetch]);
 
   const handleNewChat = useCallback(() => {
     onSelectSession(null);
-  }, [onSelectSession]);
+    if (!isInline && window.innerWidth < 1024) {
+      onClose();
+    }
+  }, [isInline, onClose, onSelectSession]);
 
   const handleSelectSession = useCallback(
     (sessionId: string) => {
       onSelectSession(sessionId);
-      // Don't close on desktop, only on mobile
-      if (window.innerWidth < 1024) {
+      if (!isInline && window.innerWidth < 1024) {
         onClose();
       }
     },
-    [onSelectSession, onClose]
+    [isInline, onClose, onSelectSession]
   );
 
-  const handleDeleteClick = useCallback((sessionId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleDeleteClick = useCallback((sessionId: string, event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
     setShowDeleteConfirm(sessionId);
   }, []);
 
@@ -105,11 +112,9 @@ export const ChatHistorySidebar = ({
     setDeletingSessionId(sessionId);
     try {
       await deleteChatSession(sessionId);
-      // If we deleted the currently active session, switch to new chat
       if (currentSessionId === sessionId) {
         onSelectSession(null);
       }
-      // Refresh the sessions list
       queryClient.invalidateQueries({ queryKey: ["chatSessions"] });
     } catch (error) {
       console.error("Failed to delete chat session:", error);
@@ -119,8 +124,8 @@ export const ChatHistorySidebar = ({
     }
   }, [showDeleteConfirm, currentSessionId, onSelectSession, queryClient]);
 
-  const handleRenameClick = useCallback((sessionId: string, currentName: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleRenameClick = useCallback((sessionId: string, currentName: string, event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
     setRenamingSessionId(sessionId);
     setRenameInput(currentName || "");
   }, []);
@@ -130,7 +135,7 @@ export const ChatHistorySidebar = ({
     if (!sessionId) return;
 
     try {
-      await renameChatSession(sessionId, renameInput);
+      await renameChatSession(sessionId, renameInput.trim());
       queryClient.invalidateQueries({ queryKey: ["chatSessions"] });
       setRenamingSessionId(null);
       setRenameInput("");
@@ -145,264 +150,210 @@ export const ChatHistorySidebar = ({
     setRenameInput("");
   }, []);
 
-  return (
-    <>
-      {/* Overlay - only show on mobile when sidebar is open */}
-      {isOpen && (
+  const historyContent = !isAuthenticated ? (
+    <div className="rounded-2xl border border-white/30 bg-white/50 px-5 py-10 text-center text-sm font-medium text-slate-600 shadow-soft backdrop-blur-glass dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+      Sign in with Google to revisit your past conversations.
+    </div>
+  ) : isLoading ? (
+    <div className="space-y-3">
+      {[1, 2, 3].map((key) => (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={onClose}
-          aria-hidden="true"
+          key={key}
+          className="h-20 animate-pulse rounded-2xl border border-white/30 bg-white/40 shadow-soft dark:border-white/10 dark:bg-white/5"
         />
-      )}
+      ))}
+    </div>
+  ) : sessions.length === 0 ? (
+    <div className="rounded-2xl border border-dashed border-white/40 bg-white/40 px-5 py-12 text-center text-sm text-slate-600 shadow-soft backdrop-blur-glass dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+      <p className="font-semibold">No saved chats yet</p>
+      <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Start a conversation to see it appear here.</p>
+    </div>
+  ) : (
+    <div className="space-y-3">
+      {sessions.map((session) => {
+        const isActive = currentSessionId === session.id;
+        return (
+          <div
+            key={session.id}
+            className={`group relative overflow-hidden rounded-2xl border border-white/30 bg-white/55 shadow-soft backdrop-blur-glass transition-all duration-200 dark:border-white/10 dark:bg-white/10 ${
+              isActive ? "ring-2 ring-brand/40" : "hover:-translate-y-1 hover:shadow-soft-lg"
+            }`}
+          >
+            <button
+              onClick={() => handleSelectSession(session.id)}
+              className="block w-full px-5 py-4 text-left"
+              disabled={deletingSessionId === session.id}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1 space-y-1">
+                  <p
+                    className={`truncate text-sm font-semibold ${
+                      isActive ? "text-brand dark:text-brand-light" : "text-slate-900 dark:text-white"
+                    }`}
+                  >
+                    {session.customName || formatSessionDate(session.date)}
+                  </p>
+                  <p className="truncate text-xs text-slate-600 dark:text-slate-400">
+                    {session.preview || "No preview yet"}
+                  </p>
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                    {session.messageCount} message{session.messageCount === 1 ? "" : "s"}
+                  </p>
+                </div>
+                <span className="rounded-full bg-white/70 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.3em] text-slate-500 shadow-soft dark:bg-white/10 dark:text-slate-300">
+                  {formatSessionDate(session.date)}
+                </span>
+              </div>
+            </button>
+            <div className="pointer-events-none absolute right-4 top-1/2 flex -translate-y-1/2 gap-2 opacity-0 transition-all duration-200 group-hover:pointer-events-auto group-hover:opacity-100">
+              <button
+                onClick={(event) => handleRenameClick(session.id, session.customName || "", event)}
+                disabled={deletingSessionId === session.id}
+                className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/40 bg-white/80 text-slate-500 shadow-soft transition-colors duration-200 hover:bg-brand/10 hover:text-brand dark:border-white/10 dark:bg-white/10 dark:text-slate-300 dark:hover:bg-brand/20 dark:hover:text-brand-light"
+                aria-label="Rename chat"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 3.487l3.651 3.651m-2.32-6.012a2.5 2.5 0 013.535 3.535L7.5 18.889 3 20l1.111-4.5 13.082-13.025z" />
+                </svg>
+              </button>
+              <button
+                onClick={(event) => handleDeleteClick(session.id, event)}
+                disabled={deletingSessionId === session.id}
+                className="pointer-events-auto inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/40 bg-white/80 text-slate-500 shadow-soft transition-colors duration-200 hover:bg-rose-100 hover:text-rose-600 dark:border-white/10 dark:bg-white/10 dark:text-slate-300 dark:hover:bg-rose-500/20 dark:hover:text-rose-200"
+                aria-label="Delete chat"
+              >
+                {deletingSessionId === session.id ? (
+                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582M20 12a8 8 0 10-8 8" />
+                  </svg>
+                ) : (
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V5a1 1 0 00-1-1h-4a1 1 0 00-1 1v3m-4 0h16" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 
-      {/* Sidebar */}
+  const inlineContainer = (
+    <div id="chat-history-panel" className="flex h-full flex-col gap-4">
+      <div className="flex items-center justify-between px-1">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">History</p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-300">Pick up where you left off.</p>
+        </div>
+        <button
+          type="button"
+          onClick={handleNewChat}
+          className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-brand to-mint px-4 py-2 text-xs font-semibold text-white shadow-soft"
+        >
+          <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m7-7H5" />
+          </svg>
+          New
+        </button>
+      </div>
+      <div className="flex-1 space-y-4 overflow-y-auto pr-2">{historyContent}</div>
+    </div>
+  );
+
+  const overlayContainer = (
+    <>
+      {isOpen && (
+        <div className="fixed inset-0 z-40 bg-black/35 backdrop-blur-sm lg:hidden" onClick={onClose} aria-hidden="true" />
+      )}
       <aside
-        className={`fixed left-0 top-0 h-full w-80 bg-white/95 backdrop-blur-xl dark:bg-slate-900/95 border-r-2 border-slate-200/60 dark:border-slate-700/60 z-50 flex flex-col shadow-soft-lg transition-transform duration-300 ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:relative lg:z-auto lg:shadow-none lg:translate-x-0 ${
-          isOpen ? "" : "lg:hidden"
+        className={`fixed left-0 top-0 z-50 h-full w-full max-w-sm transform border border-white/40 bg-white/80 p-6 shadow-soft backdrop-blur-glass transition-transform duration-300 dark:border-white/10 dark:bg-charcoal/85 lg:relative lg:z-auto lg:h-auto lg:max-w-none lg:rounded-[28px] ${
+          isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b-2 border-slate-200/60 dark:border-slate-700/60 bg-gradient-to-r from-brand/5 to-transparent dark:from-brand/10">
-          <h2 className="text-xl font-bold bg-gradient-to-r from-brand to-brand-dark bg-clip-text text-transparent">
-            Chat History
-          </h2>
-          <button
-            onClick={onClose}
-            className="lg:hidden p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-all duration-200 hover:scale-110"
-            aria-label="Close sidebar"
-          >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+        <div className="flex h-full flex-col gap-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">History</p>
+              <h3 className="mt-1 text-xl font-semibold text-slate-900 dark:text-white">Saved conversations</h3>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/40 bg-white/70 text-slate-600 shadow-soft transition-colors duration-200 hover:bg-brand/10 hover:text-brand dark:border-white/10 dark:bg-white/10 dark:text-slate-300 dark:hover:bg-brand/20 dark:hover:text-brand-light lg:hidden"
+              aria-label="Close history"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M6 18L18 6" />
+              </svg>
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={handleNewChat}
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-brand via-mint to-brand-dark px-4 py-3 text-sm font-semibold text-white shadow-soft transition-transform duration-200 hover:scale-105"
+          >
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m7-7H5" />
             </svg>
+            New chat
           </button>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4">
-          {!isAuthenticated ? (
-            <div className="text-center py-8 text-slate-600 dark:text-slate-400">
-              <p className="text-sm">Sign in with Google to view your chat history</p>
-            </div>
-          ) : isLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="animate-pulse rounded-lg bg-slate-200 dark:bg-slate-800 h-20"
-                />
-              ))}
-            </div>
-          ) : sessions.length === 0 ? (
-            <div className="text-center py-8 text-slate-600 dark:text-slate-400">
-              <p className="text-sm">No chat history yet</p>
-              <p className="text-xs mt-2">Start a conversation to see it here</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {/* New Chat Button */}
-              <button
-                onClick={handleNewChat}
-                className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 ${
-                  currentSessionId === null
-                    ? "bg-gradient-to-br from-brand to-brand-dark border-brand text-white shadow-glow"
-                    : "border-slate-200/60 dark:border-slate-700/60 hover:bg-gradient-to-br hover:from-brand/10 hover:to-brand/5 hover:border-brand/50 dark:hover:from-brand/20 dark:hover:to-brand/10"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                    currentSessionId === null ? "bg-white/20" : "bg-brand/10 dark:bg-brand/20"
-                  }`}>
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2.5}
-                        d="M12 4v16m8-8H4"
-                      />
-                    </svg>
-                  </div>
-                  <span className="font-bold text-sm">New Chat</span>
-                </div>
-              </button>
-
-              {/* Sessions List */}
-              <div className="mt-4">
-                <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-2 px-1">
-                  Recent Chats
-                </h3>
-                <div className="space-y-1">
-                  {sessions.map((session) => (
-                    <div
-                      key={session.id}
-                      className={`relative group w-full rounded-xl border-2 transition-all duration-200 ${
-                        currentSessionId === session.id
-                          ? "bg-gradient-to-br from-brand/15 to-brand/5 border-brand/60 shadow-soft dark:from-brand/25 dark:to-brand/10"
-                          : "border-slate-200/60 dark:border-slate-700/60 hover:bg-gradient-to-br hover:from-slate-50 hover:to-slate-50/50 hover:border-brand/40 dark:hover:from-slate-800 dark:hover:to-slate-800/50 dark:hover:border-brand/50 hover:shadow-soft"
-                      }`}
-                    >
-                      <button
-                        onClick={() => handleSelectSession(session.id)}
-                        className="w-full text-left p-4 pr-20"
-                        disabled={deletingSessionId === session.id}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-bold truncate ${
-                              currentSessionId === session.id
-                                ? "text-brand dark:text-brand-light"
-                                : "text-slate-900 dark:text-slate-100"
-                            }`}>
-                              {session.customName || formatSessionDate(session.date)}
-                            </p>
-                            <p className="text-xs font-medium text-slate-600 dark:text-slate-400 truncate mt-1.5">
-                              {session.preview || "No preview available"}
-                            </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 font-medium">
-                              {session.messageCount} message{session.messageCount !== 1 ? "s" : ""}
-                            </p>
-                          </div>
-                        </div>
-                      </button>
-                      {/* Action Buttons */}
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200">
-                        {/* Rename Button */}
-                        <button
-                          onClick={(e) => handleRenameClick(session.id, session.customName || "", e)}
-                          disabled={deletingSessionId === session.id}
-                          className="p-2 rounded-lg bg-white/80 backdrop-blur-sm border border-slate-200/60 hover:bg-brand/10 hover:border-brand/40 text-slate-500 hover:text-brand shadow-soft transition-all duration-200 hover:scale-110 disabled:opacity-50 dark:bg-slate-800/80 dark:border-slate-700/60 dark:hover:bg-brand/20 dark:hover:border-brand/50 dark:text-slate-400"
-                          aria-label={`Rename chat session`}
-                        >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                            />
-                          </svg>
-                        </button>
-                        {/* Delete Button */}
-                        <button
-                          onClick={(e) => handleDeleteClick(session.id, e)}
-                          disabled={deletingSessionId === session.id}
-                          className="p-2 rounded-lg bg-white/80 backdrop-blur-sm border border-slate-200/60 hover:bg-red-50 hover:border-red-400/60 text-slate-500 hover:text-red-600 shadow-soft transition-all duration-200 hover:scale-110 disabled:opacity-50 dark:bg-slate-800/80 dark:border-slate-700/60 dark:hover:bg-red-900/20 dark:hover:border-red-500/50 dark:text-slate-400 dark:hover:text-red-400"
-                          aria-label={`Delete chat session`}
-                        >
-                        {deletingSessionId === session.id ? (
-                          <svg
-                            className="w-4 h-4 animate-spin"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                            />
-                          </svg>
-                        ) : (
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                            />
-                          </svg>
-                        )}
-                      </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
+          <div className="flex-1 space-y-4 overflow-y-auto pr-1">{historyContent}</div>
         </div>
       </aside>
+    </>
+  );
 
-      {/* Delete Confirmation Dialog */}
+  return (
+    <>
+      {isInline ? inlineContainer : overlayContainer}
       <ConfirmDialog
         isOpen={showDeleteConfirm !== null}
-        title="Delete Chat Session"
-        message="Are you sure you want to delete this chat session? This action cannot be undone."
+        title="Delete chat session"
+        message="Are you sure you want to delete this conversation? This action cannot be undone."
         confirmText="Delete"
-        cancelText="Cancel"
+        cancelText="Keep"
         onConfirm={handleDeleteConfirm}
         onCancel={() => setShowDeleteConfirm(null)}
       />
 
-      {/* Rename Dialog */}
       {renamingSessionId && (
         <>
-          <div
-            className="fixed inset-0 bg-black/50 z-50 backdrop-blur-sm"
-            onClick={handleRenameCancel}
-            aria-hidden="true"
-          />
+          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" onClick={handleRenameCancel} aria-hidden="true" />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div
-              className="bg-white/95 backdrop-blur-xl dark:bg-slate-900/95 rounded-2xl shadow-soft-lg max-w-md w-full p-6 border-2 border-slate-200/60 dark:border-slate-700/60 animate-fade-in"
-              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md rounded-2xl border border-white/40 bg-white/85 p-6 shadow-soft backdrop-blur-glass dark:border-white/10 dark:bg-charcoal/90"
+              onClick={(event) => event.stopPropagation()}
             >
-              <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-4">
-                Rename Chat Session
-              </h3>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Rename conversation</h3>
               <input
                 type="text"
                 value={renameInput}
-                onChange={(e) => setRenameInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
+                onChange={(event) => setRenameInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
                     handleRenameConfirm();
-                  } else if (e.key === "Escape") {
+                  }
+                  if (event.key === "Escape") {
                     handleRenameCancel();
                   }
                 }}
-                placeholder="Enter a name for this chat..."
-                className="w-full px-4 py-3 border-2 border-slate-200/60 dark:border-slate-700/60 rounded-xl bg-white/80 backdrop-blur-sm dark:bg-slate-800/80 text-slate-900 dark:text-slate-100 font-medium shadow-soft focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand mb-5 transition-all duration-200"
+                placeholder="Give this chat a memorable name"
+                className="mt-4 w-full rounded-xl border border-white/40 bg-white/80 px-4 py-3 text-sm font-medium text-slate-900 shadow-soft outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/40 dark:border-white/10 dark:bg-white/10 dark:text-slate-100"
                 autoFocus
               />
-              <div className="flex gap-3 justify-end">
+              <div className="mt-5 flex justify-end gap-3">
                 <button
+                  type="button"
                   onClick={handleRenameCancel}
-                  className="px-5 py-2.5 text-sm font-bold rounded-xl border-2 border-slate-200/60 bg-white/80 backdrop-blur-sm dark:border-slate-700/60 dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200 hover:scale-105 hover:shadow-soft text-slate-700 dark:text-slate-300"
+                  className="rounded-full border border-white/40 bg-white/70 px-4 py-2 text-sm font-semibold text-slate-600 shadow-soft transition hover:bg-white/90 dark:border-white/10 dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/20"
                 >
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={handleRenameConfirm}
-                  className="px-5 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-br from-brand to-brand-dark text-white shadow-soft transition-all duration-200 hover:scale-105 hover:shadow-glow"
+                  className="rounded-full bg-gradient-to-r from-brand to-brand-dark px-5 py-2 text-sm font-semibold text-white shadow-soft transition hover:scale-105"
                 >
                   Save
                 </button>
@@ -414,4 +365,3 @@ export const ChatHistorySidebar = ({
     </>
   );
 };
-
