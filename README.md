@@ -1,4 +1,4 @@
-# Trendella Gift Recommender
+# GiftSense, AI Gift Recommender
 
 Full-stack React + Express application that curates gift ideas via chat, surfaces affiliate-ready product cards from Amazon, AliExpress, eBay, Etsy and Best Buy, and lets shoppers maintain a guest or user-scoped wish list with Google login.
 
@@ -113,4 +113,4 @@ Endpoints added:
 - `POST /api/wishlist/remove` – remove `{ productId, store? }`
 
 Consider adding integration tests around the recommendation endpoint once real affiliate APIs are wired up.
-"# Trendella_v2" 
+"#GiftSense_V3
