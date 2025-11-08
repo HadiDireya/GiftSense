@@ -50,7 +50,7 @@ export const AuthButton = () => {
         type="button"
         onClick={() => signInMutation.mutate()}
         disabled={isPending}
-        className="inline-flex items-center gap-2 rounded-xl border-2 border-slate-200/60 bg-white/80 backdrop-blur-sm px-5 py-2.5 text-sm font-bold text-slate-800 shadow-soft transition-all duration-200 hover:scale-105 hover:border-brand hover:bg-gradient-to-br hover:from-brand/10 hover:to-brand/5 hover:text-brand hover:shadow-glow disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 dark:border-slate-700/60 dark:bg-slate-800/80 dark:text-slate-200"
+        className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/20 backdrop-blur-lg px-5 py-2.5 text-sm font-bold text-slate-800 shadow-lg transition-all duration-200 hover:scale-105 hover:border-brand hover:bg-gradient-to-br hover:from-brand/10 hover:to-brand/5 hover:text-brand hover:shadow-glow disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 dark:border-white/30 dark:bg-black/20 dark:text-slate-200"
       >
         <svg className="h-4 w-4" viewBox="0 0 24 24">
           <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -64,7 +64,7 @@ export const AuthButton = () => {
   }
 
   return (
-    <div className="flex items-center gap-3 rounded-xl border-2 border-slate-200/60 bg-white/80 backdrop-blur-sm px-4 py-2 shadow-soft dark:border-slate-700/60 dark:bg-slate-800/80">
+    <div className="flex items-center gap-3 rounded-xl border border-white/30 bg-white/20 backdrop-blur-lg px-4 py-2 shadow-lg dark:border-white/30 dark:bg-black/20">
       {user.picture && !imageErrored ? (
         <img
           src={user.picture}
@@ -83,7 +83,7 @@ export const AuthButton = () => {
         type="button"
         onClick={() => signOutMutation.mutate()}
         disabled={isPending}
-        className="rounded-lg border-2 border-slate-200/60 bg-white/60 backdrop-blur-sm px-3 py-1.5 text-xs font-bold text-slate-600 shadow-soft transition-all duration-200 hover:scale-105 hover:border-rose-500/60 hover:bg-red-50 hover:text-rose-600 hover:shadow-glow disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 dark:border-slate-700/60 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:border-rose-400/60 dark:hover:bg-red-900/20 dark:hover:text-rose-400"
+        className="rounded-lg border border-white/30 bg-white/10 backdrop-blur-md px-3 py-1.5 text-xs font-bold text-slate-600 shadow-lg transition-all duration-200 hover:scale-105 hover:border-rose-500/60 hover:bg-red-50/20 hover:text-rose-600 hover:shadow-glow disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 dark:border-white/30 dark:bg-black/10 dark:text-slate-300 dark:hover:border-rose-400/60 dark:hover:bg-red-900/20 dark:hover:text-rose-400"
       >
         Sign out
       </button>

@@ -5,63 +5,74 @@
 @layer base {
   :root {
     color-scheme: light;
+    --page-bg: #FFF7EB;
+
+    /* Light theme palette (provided) */
+    --palette-primary: #99CDD8; /* Primary */
+    --palette-secondary: #DAEBE3; /* Secondary */
+    --palette-accent: #FDE8D3; /* Accent */
+    --palette-soft-pink: #F3C3B2; /* Soft Pink */
+    --palette-neutral: #CFD6C4; /* Neutral */
+    --palette-text: #657166; /* Text/Dark */
+
+    /* Derived colors for backgrounds / surfaces */
+    --bg-surface: #BECFDF;
+    --bg-muted: #FBFDFB;
+    --fg-default: var(--palette-text);
+    --fg-on-primary: #ffffff;
+    --shadow-color: rgba(16,24,32,0.06);
   }
 
   :root.dark {
     color-scheme: dark;
+
+    /* For dark mode we invert contrast: darker backgrounds and lighter text */
+    --palette-primary: #275358; /* darker tint of primary to keep balance */
+    --palette-secondary: #24413b;
+    --palette-accent: #6b4a3a;
+    --palette-soft-pink: #6a3f36;
+    --palette-neutral: #33504a;
+    --palette-text: #e6eef0; /* light text for contrast */
+
+    --bg-surface: #BECFDF;
+    --bg-muted: #08121a;
+    --fg-default: var(--palette-text);
+    --fg-on-primary: #0b1220;
+    --shadow-color: rgba(0,0,0,0.6);
+  }
+
+  html, body, #root {
+    height: 100%;
+  }
+
+  html, body, #root {
+    background-color: var(--page-bg) !important;
+    min-height: 100%;
   }
 
   body {
-    @apply bg-gradient-to-br from-slate-50 via-white to-slate-50 text-slate-900 antialiased;
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg-surface);
+    color: var(--fg-default);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  :root.dark body {
-    @apply bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100 antialiased;
-  }
-
-  /* Custom Scrollbar Styles */
+  /* Hidden Scrollbar Styles */
   * {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
+    scrollbar-width: none;
   }
 
   *::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  *::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  *::-webkit-scrollbar-thumb {
-    background-color: rgba(148, 163, 184, 0.5);
-    border-radius: 4px;
-    border: 2px solid transparent;
-  }
-
-  *::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(148, 163, 184, 0.7);
-  }
-
-  /* Dark mode scrollbar */
-  :root.dark * {
-    scrollbar-color: rgba(71, 85, 105, 0.6) transparent;
-  }
-
-  :root.dark *::-webkit-scrollbar-thumb {
-    background-color: rgba(71, 85, 105, 0.6);
-  }
-
-  :root.dark *::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(71, 85, 105, 0.8);
+    display: none;
   }
 }
 
 @layer components {
   .chat-bubble {
-    @apply rounded-2xl px-5 py-3.5 transition-all duration-200;
-    box-shadow: 0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04);
+    @apply rounded-3xl px-6 py-4 transition-all duration-200;
+    box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.08), 0 20px 40px -4px rgba(0, 0, 0, 0.04);
   }
 
   .glass-effect {
@@ -70,5 +81,33 @@
 
   .glass-effect-dark {
     @apply bg-slate-900/80 backdrop-blur-xl border border-slate-800/50;
+  }
+
+  /* Sidebar search input — modern, rounded, soft shadow, theme-aware */
+  .sidebar-search {
+    width: 100%;
+    padding: 0.6rem 0.9rem;
+    border-radius: 12px;
+    border: 1px solid rgba(0,0,0,0.06);
+    background: color-mix(in srgb, var(--palette-secondary) 6%, rgba(255,255,255,0.85));
+    color: var(--fg-default);
+    box-shadow: 0 6px 18px -8px var(--shadow-color);
+    transition: box-shadow 180ms ease, transform 120ms ease, border-color 180ms ease;
+  }
+
+  :root.dark .sidebar-search {
+    background: color-mix(in srgb, var(--palette-primary) 6%, rgba(8,12,16,0.6));
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .sidebar-search::placeholder {
+    color: color-mix(in srgb, var(--fg-default) 60%, transparent);
+  }
+
+  .sidebar-search:focus {
+    outline: none;
+    box-shadow: 0 8px 30px -12px var(--shadow-color);
+    transform: translateY(-1px);
+    border-color: var(--palette-primary);
   }
 }

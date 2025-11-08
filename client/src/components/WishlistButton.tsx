@@ -46,10 +46,10 @@ export const WishlistButton = ({ product }: WishlistButtonProps) => {
       type="button"
       onClick={handleToggle}
       disabled={isLoading}
-      className={`flex h-12 w-12 items-center justify-center rounded-xl border-2 px-3 py-2.5 text-sm font-bold transition-all duration-200 shadow-soft ${
-        isSaved
-          ? "border-rose-500/60 bg-gradient-to-br from-rose-50 to-rose-100 text-rose-600 hover:scale-105 hover:border-rose-500 hover:shadow-glow dark:border-rose-400/60 dark:from-rose-500/20 dark:to-rose-500/10 dark:text-rose-300"
-          : "border-slate-200/60 bg-white/80 backdrop-blur-sm text-slate-700 hover:border-brand hover:bg-gradient-to-br hover:from-brand/10 hover:to-brand/5 hover:text-brand hover:scale-105 hover:shadow-glow dark:border-slate-700/60 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:from-brand/20 dark:hover:to-brand/10"
+      className={`flex h-12 w-12 items-center justify-center rounded-xl border-2 px-3 py-2.5 text-sm font-bold transition-all duration-200 shadow-lg ${
+      isSaved
+      ? "border-[#FF9A63] bg-gradient-to-br from-[#FF9A63]/20 to-[#FF7C39]/20 text-[#FF7C39] fill-[#FF7C39] hover:bg-[rgba(255,148,96,0.18)] hover:scale-[1.12] hover:shadow-glow dark:border-[#FF9D62] dark:from-[#FF9D62]/20 dark:to-[#FFB98A]/20 dark:text-[#FFB98A] dark:fill-[#FFB98A] dark:hover:bg-[rgba(255,148,96,0.22)]"
+      : "border-white/30 bg-white/20 backdrop-blur-lg text-slate-700 hover:scale-[1.12] hover:shadow-glow dark:border-white/30 dark:bg-black/20 dark:text-slate-200"
       } disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100`}
       aria-pressed={isSaved}
     >

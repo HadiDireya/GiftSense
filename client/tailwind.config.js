@@ -5,11 +5,16 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Use CSS variables so the color palette can switch with the .dark class
         brand: {
-          DEFAULT: "#8b5cf6",
-          dark: "#7c3aed",
-          light: "#a78bfa",
-          lighter: "#c4b5fd"
+          DEFAULT: 'var(--palette-primary)',
+          dark: 'var(--palette-text)',
+          light: 'var(--palette-secondary)',
+          lighter: 'var(--palette-accent)'
+        },
+        lavender: {
+          400: '#a78bfa',
+          500: '#8b5cf6'
         }
       },
       boxShadow: {
