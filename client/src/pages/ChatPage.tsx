@@ -404,7 +404,11 @@ export const ChatPage = () => {
 
               // If user started chatting before signing in, save current state
               const currentMessages = messagesRef.current;
-              if (currentMessages.length > 2) {
+              const hasUserMessages = currentMessages.some(
+                (message) =>
+                  message.sender === "user" && message.content.trim().length > 0
+              );
+              if (hasUserMessages) {
                 try {
                   await saveChatSession(
                     newSessionId,
@@ -449,6 +453,14 @@ export const ChatPage = () => {
   // Save complete chat session whenever state changes (for authenticated users)
   useEffect(() => {
     if (!isAuthenticated || isLoadingHistory) {
+      return;
+    }
+
+    const hasUserMessages = messages.some(
+      (message) => message.sender === "user" && message.content.trim().length > 0
+    );
+
+    if (!hasUserMessages) {
       return;
     }
 
@@ -580,11 +592,15 @@ export const ChatPage = () => {
         }, 500);
       } else {
         // Load specific session - save current session first if needed
+        const hasUserMessages = messagesRef.current.some(
+          (message) =>
+            message.sender === "user" && message.content.trim().length > 0
+        );
         if (
           isAuthenticated &&
           currentSessionId &&
           currentSessionId !== sessionId &&
-          messagesRef.current.length > 2
+          hasUserMessages
         ) {
           // Clear any pending save timeout
           if (saveTimeoutRef.current) {

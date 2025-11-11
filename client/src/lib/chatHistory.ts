@@ -104,6 +104,15 @@ export const saveChatSession = async (
     return;
   }
 
+  const hasUserMessage = messages.some(
+    (message) => message.sender === "user" && message.content.trim().length > 0
+  );
+
+  if (!hasUserMessage) {
+    // Skip persisting chats that don't include a user reply yet
+    return;
+  }
+
   const firestore = getFirestoreClient();
   const userId = currentUser.uid;
 
