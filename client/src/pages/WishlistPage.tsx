@@ -9,6 +9,8 @@ import { useTheme } from "../state/theme";
 import logoLight from "../assets/logo_light_mode.png";
 import logoDark from "../assets/logo_dark_mode.png";
 
+type StoredProduct = NormalizedProduct & { liked?: boolean };
+
 export const WishlistPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -41,9 +43,11 @@ export const WishlistPage = () => {
     localStorage.removeItem("wishlist");
 
     // Also reset any saved 'liked' flags
-    const allProducts = JSON.parse(localStorage.getItem("products") || "[]");
-    const updatedProducts = allProducts.map((p) => ({
-      ...p,
+    const parsed = JSON.parse(localStorage.getItem("products") || "[]");
+    const allProducts: StoredProduct[] = Array.isArray(parsed) ? parsed : [];
+
+    const updatedProducts = allProducts.map((product) => ({
+      ...product,
       liked: false,
     }));
     localStorage.setItem("products", JSON.stringify(updatedProducts));
